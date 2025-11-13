@@ -1,0 +1,47 @@
+pipeline {
+    agent { label 'docker' }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '>>> Checking out code from GitHub...'
+                git branch: 'main', url: 'https://github.com/Artem-10/test.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo '>>> Building Docker image...'
+                sh 'docker build . -t aartemdevops10/nodejs-app:latest'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                echo '>>> Running tests...'
+                sh 'docker run --rm aartemdevops10/nodejs-app:latest test'
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo '>>> Tests passed. Pushing image to Docker Hub...'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+
+                    sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
+
+                    sh 'docker push aartemdevops10/nodejs-app:latest'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '>>> SUCCESS! Pipeline finished.'
+        }
+        failure {
+            echo '!!! FAILURE! Something went wrong.'
+        }
+    }
+}
