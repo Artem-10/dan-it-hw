@@ -1,0 +1,4 @@
+[webservers]
+%{ for ip in ip_addrs ~}
+${ip} ansible_user=ubuntu ansible_ssh_private_key_file=${ssh_key} ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+%{ endfor ~}

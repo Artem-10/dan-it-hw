@@ -3,3 +3,13 @@
 *.tfstate
 *.tfstate.*
 *.idea.*
+inventory.ini
+*.tfvars
+crash.log
+*.retry
+*.pem
+*.pub
+*_key
+.idea/
+.vscode
+.DS_Store
