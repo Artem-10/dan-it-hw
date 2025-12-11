@@ -1,0 +1,85 @@
+---
+- name: Setup Jenkins Master and Nginx Reverse Proxy
+  hosts: jenkins_master
+  become: yes
+
+  tasks:
+    - name: 0. Cleanup old/broken Jenkins repo and key if exist
+      ansible.builtin.shell: |
+        rm -f /etc/apt/sources.list.d/jenkins.list
+        rm -f /usr/share/keyrings/jenkins-keyring.asc
+        rm -f /usr/share/keyrings/jenkins-keyring.gpg
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: 1. Install Java (OpenJDK 17)
+      ansible.builtin.apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+      tags: install_java
+
+    - name: 2. Download Jenkins GPG key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+        mode: "0644"
+      tags: install_jenkins_repo
+
+    - name: 3. Add Jenkins APT repository
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/jenkins.list
+        mode: "0644"
+        content: |
+          deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/
+      tags: install_jenkins_repo
+
+    - name: 4. Install Jenkins
+      ansible.builtin.apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+      tags: install_jenkins
+
+    - name: 5. Ensure Jenkins service is running and enabled
+      ansible.builtin.service:
+        name: jenkins
+        state: started
+        enabled: yes
+      tags: start_jenkins
+
+    - name: 6. Install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: yes
+      tags: install_nginx
+
+    - name: 7. Deploy nginx reverse proxy configuration
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/jenkins
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Nginx
+
+    - name: 8. Enable nginx site config
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/jenkins
+        dest: /etc/nginx/sites-enabled/jenkins
+        state: link
+      notify: Restart Nginx
+
+    - name: 9. Remove default Nginx site config
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Restart Nginx
+
+  handlers:
+    - name: Restart Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted

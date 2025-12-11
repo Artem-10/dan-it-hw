@@ -1,0 +1,49 @@
+pipeline {
+    agent {
+        label 'worker'
+    }
+    options {
+        skipStagesWithUnstableResults()
+    }
+    stages {
+        stage('1. Code Check') {
+            steps {
+                echo "--- Stage 1: Checkout Code ---"
+                checkout scm
+                sh 'echo "Current repository files: $(ls -la)"'
+            }
+        }
+        stage('2. Build (Simulation)') {
+            steps {
+                echo "--- stage 2: Simulation Build Process ---"
+                sh 'echo "Building application on worker..."'
+                sh 'sleep 3'
+            }
+        }
+
+        stage('3. test (Simulation)') {
+            steps {
+                echo "--- Stage 3: Simulating test process ---"
+                sh 'echo "running test on worker."'
+                sh 'echo "worker hostname: $(hostname)"'
+            }
+        }
+
+        stage('4. final chek') {
+            agent any
+            steps {
+                echo "--- Stage 4: verifying build status ---"
+                sh 'echo "Pipeline finished its work."'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'deployment pipeline SUCCESSFUL! all checks passed.'
+        }
+        failure {
+            echo 'deployment pipeline FAILED. please review the logs'
+        }
+    }
+}
