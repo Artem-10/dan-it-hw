@@ -14,6 +14,8 @@ spec:
       labels:
         app: random-string
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: random-string
           image: docker.io/aartemdevops10/random-string:1.1
